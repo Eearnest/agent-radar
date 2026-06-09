@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Radar | IronClaw Ecosystem Monitor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        header {
+            background: linear-gradient(90deg, #0d0d15 0%, #1a1a2e 50%, #0d0d15 100%);
+            padding: 30px 20px;
+            text-align: center;
+            border-bottom: 2px solid #00ffff;
+            position: relative;
+            overflow: hidden;
+        }
+        .radar-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+        }
+        .radar-circle {
+            position: absolute;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: radar-pulse 3s ease-out infinite;
+        }
+        .radar-circle:nth-child(1) { width: 40px; height: 40px; animation-delay: 0s; }
+        .radar-circle:nth-child(2) { width: 70px; height: 70px; animation-delay: 1s; }
+        .radar-circle:nth-child(3) { width: 100px; height: 100px; animation-delay: 2s; }
+        @keyframes radar-pulse {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+        .radar-sweep {
+            position: absolute;
+            width: 50%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff);
+            top: 50%;
+            left: 50%;
+            transform-origin: left;
+            animation: radar-sweep 2s linear infinite;
+        }
+        @keyframes radar-sweep {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #00ffff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        header p { color: #888; font-size: 1.1em; letter-spacing: 2px; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .controls { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 20px;
+            background: rgba(26, 26, 46, 0.8);
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1em;
+        }
+        .search-box:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+        .filter-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+        .filter-btn {
+            padding: 12px 24px;
+            background: rgba(26, 26, 46, 0.8);
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+            color: #00ffff;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            background: rgba(26, 26, 46, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.2);
+        }
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00ffff;
+        }
+        .stat-label { color: #888; margin-top: 10px; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; }
+        .section-title {
+            font-size: 1.5em;
+            color: #00ffff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: #00ffff;
+            border-radius: 2px;
+        }
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .agent-card {
+            background: rgba(26, 26, 46, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .agent-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 3px;
+            background: linear-gradient(90deg, #00ffff, #00ff88);
+        }
+        .agent-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.2);
+            border-color: rgba(0, 255, 255, 0.5);
+        }
+        .agent-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .agent-name { font-size: 1.2em; font-weight: bold; color: #fff; }
+        .agent-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-active { background: rgba(0,255,136,0.2); color: #00ff88; border: 1px solid #00ff88; animation: status-pulse 2s ease-in-out infinite; }
+        .status-idle { background: rgba(255,184,0,0.2); color: #ffb800; border: 1px solid #ffb800; }
+        .status-offline { background: rgba(255,68,68,0.2); color: #ff4444; border: 1px solid #ff4444; }
+        @keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .agent-specialty { color: #888; font-size: 0.9em; margin-bottom: 10px; }
+        .agent-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .agent-stat-item { text-align: center; flex: 1; }
+        .agent-stat-value { font-size: 1.2em; font-weight: bold; color: #00ffff; }
+        .agent-stat-label { font-size: 0.7em; color: #666; text-transform: uppercase; }
+        .activity-section { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-bottom: 40px; }
+        @media (max-width: 900px) { .activity-section { grid-template-columns: 1fr; } }
+        .activity-feed, .leaderboard {
+            background: rgba(26, 26, 46, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .activity-item {
+            display: flex;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-icon {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: rgba(0,255,255,0.1);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2em; flex-shrink: 0;
+        }
+        .activity-content { flex: 1; min-width: 0; }
+        .activity-text { color: #e0e0e0; margin-bottom: 5px; font-size: 0.9em; }
+        .activity-time { color: #666; font-size: 0.8em; }
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .leaderboard-item:hover { background: rgba(0,255,255,0.1); }
+        .leaderboard-rank {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 1em; flex-shrink: 0;
+        }
+        .rank-1 { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; }
+        .rank-2 { background: linear-gradient(135deg, #c0c0c0, #a0a0a0); color: #000; }
+        .rank-3 { background: linear-gradient(135deg, #cd7f32, #b87333); color: #fff; }
+        .rank-other { background: rgba(0,255,255,0.2); color: #00ffff; }
+        .leaderboard-info { flex: 1; min-width: 0; }
+        .leaderboard-name { font-weight: bold; color: #fff; font-size: 0.95em; }
+        .leaderboard-specialty { color: #888; font-size: 0.8em; }
+        .leaderboard-score { font-size: 1.2em; font-weight: bold; color: #00ffff; flex-shrink: 0; }
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            align-items: center; justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: rgba(13, 13, 21, 0.98);
+            border: 2px solid #00ffff;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 580px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .modal-close {
+            position: absolute; top: 15px; right: 20px;
+            background: none; border: none;
+            color: #888; font-size: 1.8em;
+            cursor: pointer; line-height: 1;
+            transition: color 0.3s;
+        }
+        .modal-close:hover { color: #00ffff; }
+        .modal-title {
+            font-size: 1.6em; color: #00ffff;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(0,255,255,0.3);
+            padding-bottom: 12px;
+            padding-right: 30px;
+        }
+        .modal-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .modal-row:last-child { border-bottom: none; }
+        .modal-label { color: #888; font-size: 0.9em; }
+        .modal-value { color: #00ffff; font-weight: bold; }
+        .modal-actions-title {
+            color: #888;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 20px 0 10px;
+        }
+        .action-item {
+            padding: 8px 12px;
+            background: rgba(0,255,255,0.05);
+            border-left: 2px solid #00ffff;
+            margin-bottom: 8px;
+            border-radius: 0 6px 6px 0;
+            color: #e0e0e0;
+            font-size: 0.9em;
+        }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+        ::-webkit-scrollbar-thumb { background: rgba(0,255,255,0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,255,255,0.5); }
+        /* No results */
+        .no-results {
+            text-align: center; color: #555;
+            padding: 40px; grid-column: 1/-1;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="radar-container">
+        <div class="radar-sweep"></div>
+        <div class="radar-circle"></div>
+        <div class="radar-circle"></div>
+        <div class="radar-circle"></div>
+    </div>
+    <h1>AGENT RADAR</h1>
+    <p>TRACKING IRONCLAW AGENTS</p>
+</header>
+
+<div class="container">
+
+    <div class="controls">
+        <input type="text" class="search-box" id="searchBox" placeholder="Search agents by name or specialty...">
+        <div class="filter-buttons">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="active">Active</button>
+            <button class="filter-btn" data-filter="idle">Idle</button>
+            <button class="filter-btn" data-filter="offline">Offline</button>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value" id="totalAgents">0</div>
+            <div class="stat-label">Total Agents</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="activeAgents">0</div>
+            <div class="stat-label">Active Now</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="totalSkills">0</div>
+            <div class="stat-label">Total Skills</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="missionsRunning">0</div>
+            <div class="stat-label">Missions Running</div>
+        </div>
+    </div>
+
+    <h2 class="section-title">Agents</h2>
+    <div class="agents-grid" id="agentsGrid"></div>
+
+    <div class="activity-section">
+        <div>
+            <h2 class="section-title">Recent Activity</h2>
+            <div class="activity-feed" id="activityFeed"></div>
+        </div>
+        <div>
+            <h2 class="section-title">Leaderboard</h2>
+            <div class="leaderboard" id="leaderboard"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <h2 class="modal-title" id="modalTitle">Agent Details</h2>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+
+const AGENT_DATA = {
+    agents: [
+        { id:1, name:"IronClaw Alpha",      status:"active",  specialty:"Portfolio Analysis",    skills:12, activityScore:9847, lastSeen:"2026-06-02T14:32:00Z", recentActions:["Scanned portfolio","Found yield opportunity","Built intent"] },
+        { id:2, name:"Chart Reader",         status:"active",  specialty:"Technical Analysis",    skills:8,  activityScore:8234, lastSeen:"2026-06-02T14:30:00Z", recentActions:["Analyzed BTC chart","Identified pattern","Updated support levels"] },
+        { id:3, name:"Memecoin Scanner",     status:"idle",    specialty:"Token Discovery",       skills:6,  activityScore:5621, lastSeen:"2026-06-02T14:15:00Z", recentActions:["Scanned DexScreener","Found trending token"] },
+        { id:4, name:"Rug Detector",         status:"active",  specialty:"Contract Safety",       skills:10, activityScore:7892, lastSeen:"2026-06-02T14:31:00Z", recentActions:["Analyzed contract","Flagged suspicious wallet","Cleared 3 tokens"] },
+        { id:5, name:"Order Builder",        status:"active",  specialty:"Trade Execution",       skills:15, activityScore:6543, lastSeen:"2026-06-02T14:28:00Z", recentActions:["Built OCO order","Set trailing stop","Executed limit"] },
+        { id:6, name:"Sentiment Analyzer",   status:"offline", specialty:"Market Mood",           skills:5,  activityScore:3421, lastSeen:"2026-06-02T12:00:00Z", recentActions:["Calculated fear/greed index"] },
+        { id:7, name:"Liquidation Hunter",   status:"active",  specialty:"Stop Hunt Detection",   skills:9,  activityScore:8901, lastSeen:"2026-06-02T14:33:00Z", recentActions:["Found liq cluster","Predicted wick zone","Alerted traders"] },
+        { id:8, name:"Trend Detector",       status:"idle",    specialty:"Directional Analysis",  skills:7,  activityScore:4567, lastSeen:"2026-06-02T14:20:00Z", recentActions:["Confirmed uptrend","Updated multi-timeframe"] }
+    ],
+    activityLog: [
+        { id:1,  agent:"IronClaw Alpha",    action:"Scanned portfolio for yield opportunities",       time:"2026-06-02T14:32:00Z" },
+        { id:2,  agent:"Chart Reader",      action:"Analyzed BTC/USDT 4h chart pattern",              time:"2026-06-02T14:30:00Z" },
+        { id:3,  agent:"Rug Detector",      action:"Flagged suspicious contract 0x7a2...",            time:"2026-06-02T14:29:00Z" },
+        { id:4,  agent:"Liquidation Hunter",action:"Found $50M long liq cluster at $78K",            time:"2026-06-02T14:28:00Z" },
+        { id:5,  agent:"Order Builder",     action:"Built OCO order for SOL short",                  time:"2026-06-02T14:27:00Z" },
+        { id:6,  agent:"Memecoin Scanner",  action:"Found trending token on DexScreener",            time:"2026-06-02T14:25:00Z" },
+        { id:7,  agent:"IronClaw Alpha",    action:"Built intent for portfolio rebalance",           time:"2026-06-02T14:23:00Z" },
+        { id:8,  agent:"Trend Detector",    action:"Confirmed ETH/BTC ratio breakdown",              time:"2026-06-02T14:20:00Z" },
+        { id:9,  agent:"Sentiment Analyzer",action:"Updated fear/greed index to 32 (Fear)",         time:"2026-06-02T14:15:00Z" },
+        { id:10, agent:"Chart Reader",      action:"Identified head & shoulders on SOL",             time:"2026-06-02T14:10:00Z" }
+    ]
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function timeAgo(isoString) {
+    const diff = Math.floor((Date.now() - new Date(isoString)) / 1000);
+    if (diff < 60)   return diff + 's ago';
+    if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+    if (diff < 86400)return Math.floor(diff/3600) + 'h ago';
+    return Math.floor(diff/86400) + 'd ago';
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function renderStats() {
+    const active = AGENT_DATA.agents.filter(a => a.status === 'active').length;
+    const skills = AGENT_DATA.agents.reduce((s, a) => s + a.skills, 0);
+    document.getElementById('totalAgents').textContent   = AGENT_DATA.agents.length;
+    document.getElementById('activeAgents').textContent  = active;
+    document.getElementById('totalSkills').textContent   = skills;
+    document.getElementById('missionsRunning').textContent = 3;
+}
+
+function renderAgents() {
+    const grid       = document.getElementById('agentsGrid');
+    const search     = document.getElementById('searchBox').value.toLowerCase();
+    const filter     = document.querySelector('.filter-btn.active').dataset.filter;
+
+    const filtered = AGENT_DATA.agents.filter(a => {
+        const matchSearch = a.name.toLowerCase().includes(search) || a.specialty.toLowerCase().includes(search);
+        const matchFilter = filter === 'all' || a.status === filter;
+        return matchSearch && matchFilter;
+    });
+
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div class="no-results">No agents match your search.</div>';
+        return;
+    }
+
+    grid.innerHTML = filtered.map(agent => `
+        <div class="agent-card" onclick="openModal(${agent.id})">
+            <div class="agent-header">
+                <span class="agent-name">${agent.name}</span>
+                <span class="agent-status status-${agent.status}">${agent.status}</span>
+            </div>
+            <div class="agent-specialty">${agent.specialty}</div>
+            <div class="agent-stats">
+                <div class="agent-stat-item">
+                    <div class="agent-stat-value">${agent.skills}</div>
+                    <div class="agent-stat-label">Skills</div>
+                </div>
+                <div class="agent-stat-item">
+                    <div class="agent-stat-value">${(agent.activityScore/1000).toFixed(1)}K</div>
+                    <div class="agent-stat-label">Score</div>
+                </div>
+                <div class="agent-stat-item">
+                    <div class="agent-stat-value">${agent.recentActions.length}</div>
+                    <div class="agent-stat-label">Actions</div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderActivityFeed() {
+    document.getElementById('activityFeed').innerHTML =
+        AGENT_DATA.activityLog.slice(0, 15).map(log => `
+            <div class="activity-item">
+                <div class="activity-icon">🤖</div>
+                <div class="activity-content">
+                    <div class="activity-text"><strong>${log.agent}</strong> — ${log.action}</div>
+                    <div class="activity-time">${timeAgo(log.time)}</div>
+                </div>
+            </div>
+        `).join('');
+}
+
+function renderLeaderboard() {
+    const sorted = [...AGENT_DATA.agents].sort((a,b) => b.activityScore - a.activityScore);
+    document.getElementById('leaderboard').innerHTML =
+        sorted.slice(0, 8).map((agent, i) => `
+            <div class="leaderboard-item" onclick="openModal(${agent.id})">
+                <div class="leaderboard-rank ${i < 3 ? 'rank-'+(i+1) : 'rank-other'}">${i+1}</div>
+                <div class="leaderboard-info">
+                    <div class="leaderboard-name">${agent.name}</div>
+                    <div class="leaderboard-specialty">${agent.specialty}</div>
+                </div>
+                <div class="leaderboard-score">${(agent.activityScore/1000).toFixed(1)}K</div>
+            </div>
+        `).join('');
+}
+
+function renderAll() {
+    renderStats();
+    renderAgents();
+    renderActivityFeed();
+    renderLeaderboard();
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+
+function openModal(agentId) {
+    const agent = AGENT_DATA.agents.find(a => a.id === agentId);
+    if (!agent) return;
+
+    document.getElementById('modalTitle').textContent = agent.name;
+    document.getElementById('modalContent').innerHTML = `
+        <div class="modal-row">
+            <span class="modal-label">Status</span>
+            <span class="modal-value">${agent.status.toUpperCase()}</span>
+        </div>
+        <div class="modal-row">
+            <span class="modal-label">Specialty</span>
+            <span class="modal-value">${agent.specialty}</span>
+        </div>
+        <div class="modal-row">
+            <span class="modal-label">Skills Loaded</span>
+            <span class="modal-value">${agent.skills}</span>
+        </div>
+        <div class="modal-row">
+            <span class="modal-label">Activity Score</span>
+            <span class="modal-value">${agent.activityScore.toLocaleString()}</span>
+        </div>
+        <div class="modal-row">
+            <span class="modal-label">Last Seen</span>
+            <span class="modal-value">${timeAgo(agent.lastSeen)}</span>
+        </div>
+        <div class="modal-actions-title">Recent Actions</div>
+        ${agent.recentActions.map(a => `<div class="action-item">⚡ ${a}</div>`).join('')}
+    `;
+
+    document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function handleOverlayClick(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── Event Listeners ───────────────────────────────────────────────────────────
+
+document.getElementById('searchBox').addEventListener('input', renderAgents);
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderAgents();
+    });
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+renderAll();
+</script>
+</body>
+</html>
