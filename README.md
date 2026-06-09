@@ -1,2 +1,2 @@
 # agent-radar
-Discover Agent in the Ionclaw verse
+Discover Agents in the Ionclaw verse
